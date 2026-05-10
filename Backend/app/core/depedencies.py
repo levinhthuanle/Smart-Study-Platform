@@ -17,7 +17,7 @@ from app.models.user import User
 
 
 oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl="/auth/login"
+    tokenUrl="/api/auth/login"
 )
 
 
@@ -38,16 +38,19 @@ async def get_current_user(
         )
 
         user_id = payload.get("sub")
+        token_type = payload.get("type")
 
-        if user_id is None:
+        if user_id is None or token_type != "access":
             raise credentials_exception
 
-    except JWTError:
+        user_id = int(user_id)
+
+    except (JWTError, ValueError):
         raise credentials_exception
 
     result = await db.execute(
         select(User).where(
-            User.user_id == int(user_id)
+            User.user_id == user_id
         )
     )
 

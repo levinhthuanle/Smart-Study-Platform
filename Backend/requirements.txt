@@ -22,3 +22,5 @@ websockets
 redis
 
 fastapi[standard]
+
+pytest

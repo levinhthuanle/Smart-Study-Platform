@@ -1,11 +1,15 @@
 from fastapi import FastAPI
 
-from app.api.auth import (
+from app.api.auth import(
     router as auth_router,
 )
 
 from app.api.user import (
     router as users_router,
+)
+
+from app.api.workspace import (
+    router as workspaces_router,
 )
 
 
@@ -23,3 +27,4 @@ async def root():
 
 app.include_router(auth_router)
 app.include_router(users_router)
+app.include_router(workspaces_router)

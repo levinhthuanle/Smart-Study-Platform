@@ -1,16 +1,20 @@
 from fastapi import HTTPException
+from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
+from app.core.config import settings
 from app.models.user import User
 from app.schemas.user import (
     UserRegister,
     UserLogin,
+    TokenRefreshRequest,
 )
 from app.core.security import (
     hash_password,
     verify_password,
     create_access_token,
+    create_refresh_token,
 )
 
 
@@ -44,14 +48,9 @@ async def register_user(
     await db.commit()
     await db.refresh(new_user)
 
-    access_token = create_access_token(
-        {"sub": str(new_user.user_id)}
-    )
-
     return {
         "message": "User registered successfully",
-        "access_token": access_token,
-        "token_type": "bearer",
+        **_create_auth_tokens(new_user.user_id),
     }
 
 
@@ -82,11 +81,62 @@ async def login_user(
             detail="Invalid credentials",
         )
 
-    access_token = create_access_token(
-        {"sub": str(user.user_id)}
+    return _create_auth_tokens(user.user_id)
+
+
+async def refresh_access_token(
+    token_data: TokenRefreshRequest,
+    db: AsyncSession,
+):
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Could not validate refresh token",
     )
 
+    try:
+        payload = jwt.decode(
+            token_data.refresh_token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
+        )
+
+        user_id = payload.get("sub")
+        token_type = payload.get("type")
+
+        if user_id is None or token_type != "refresh":
+            raise credentials_exception
+
+        user_id = int(user_id)
+
+    except (JWTError, ValueError):
+        raise credentials_exception
+
+    result = await db.execute(
+        select(User).where(
+            User.user_id == user_id
+        )
+    )
+
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        raise credentials_exception
+
     return {
-        "access_token": access_token,
+        "access_token": create_access_token(
+            {"sub": str(user.user_id)}
+        ),
+        "token_type": "bearer",
+    }
+
+
+def _create_auth_tokens(user_id: int):
+    token_data = {
+        "sub": str(user_id)
+    }
+
+    return {
+        "access_token": create_access_token(token_data),
+        "refresh_token": create_refresh_token(token_data),
         "token_type": "bearer",
     }
