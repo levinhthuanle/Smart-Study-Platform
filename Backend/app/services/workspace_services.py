@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import delete, select
+from sqlalchemy import delete, or_, select
 
 from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember
@@ -9,11 +9,22 @@ from app.schemas.workspace import WorkspaceCreate, WorkspaceUpdate
 
 async def get_all_workspaces(
     db: AsyncSession,
-    owner_id: int,
+    user_id: int,
 ):
+    member_workspace_ids = select(
+        WorkspaceMember.workspace_id
+    ).where(
+        WorkspaceMember.user_id == user_id
+    )
+
     result = await db.execute(
         select(Workspace)
-        .where(Workspace.owner_id == owner_id)
+        .where(
+            or_(
+                Workspace.owner_id == user_id,
+                Workspace.workspace_id.in_(member_workspace_ids),
+            )
+        )
         .order_by(Workspace.created_at.desc())
     )
 
@@ -50,12 +61,12 @@ async def create_workspace(
 async def get_workspace_by_id(
     workspace_id: int,
     db: AsyncSession,
-    owner_id: int,
+    user_id: int,
 ):
-    workspace = await _get_owned_workspace(
+    workspace = await get_accessible_workspace(
         workspace_id,
         db,
-        owner_id,
+        user_id,
     )
 
     return workspace
@@ -67,7 +78,7 @@ async def update_workspace(
     db: AsyncSession,
     owner_id: int,
 ):
-    workspace = await _get_owned_workspace(
+    workspace = await get_owned_workspace(
         workspace_id,
         db,
         owner_id,
@@ -95,7 +106,7 @@ async def delete_workspace(
     db: AsyncSession,
     owner_id: int,
 ):
-    workspace = await _get_owned_workspace(
+    workspace = await get_owned_workspace(
         workspace_id,
         db,
         owner_id,
@@ -114,7 +125,7 @@ async def delete_workspace(
     }
 
 
-async def _get_owned_workspace(
+async def get_owned_workspace(
     workspace_id: int,
     db: AsyncSession,
     owner_id: int,
@@ -123,6 +134,39 @@ async def _get_owned_workspace(
         select(Workspace).where(
             Workspace.workspace_id == workspace_id,
             Workspace.owner_id == owner_id,
+        )
+    )
+
+    workspace = result.scalar_one_or_none()
+
+    if workspace is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Workspace not found",
+        )
+
+    return workspace
+
+
+async def get_accessible_workspace(
+    workspace_id: int,
+    db: AsyncSession,
+    user_id: int,
+):
+    member_workspace_ids = select(
+        WorkspaceMember.workspace_id
+    ).where(
+        WorkspaceMember.user_id == user_id
+    )
+
+    result = await db.execute(
+        select(Workspace)
+        .where(
+            Workspace.workspace_id == workspace_id,
+            or_(
+                Workspace.owner_id == user_id,
+                Workspace.workspace_id.in_(member_workspace_ids),
+            ),
         )
     )
 

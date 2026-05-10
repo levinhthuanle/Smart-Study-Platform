@@ -24,3 +24,4 @@ redis
 fastapi[standard]
 
 pytest
+cloudinary
