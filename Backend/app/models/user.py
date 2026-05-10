@@ -1,6 +1,6 @@
 from sqlalchemy import String, Integer, TIMESTAMP, func
 from sqlalchemy.orm import Mapped, mapped_column
-
+from sqlalchemy.orm import relationship
 from app.db.database import Base
 
 
@@ -27,4 +27,14 @@ class User(Base):
     created_at: Mapped[TIMESTAMP] = mapped_column(
         TIMESTAMP(timezone=True),
         server_default=func.now(),
+    )
+    
+    owned_workspaces = relationship(
+        "Workspace",
+        back_populates="owner",
+    )
+
+    workspace_memberships = relationship(
+        "WorkspaceMember",
+        back_populates="user",
     )
