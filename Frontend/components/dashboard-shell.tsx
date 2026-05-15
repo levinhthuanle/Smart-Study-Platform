@@ -487,17 +487,17 @@ export function DashboardShell() {
                 <p className="muted-label">Task board</p>
                 <h2 className="mt-2 text-xl font-semibold text-ink">Move work forward</h2>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <input
                   value={newTaskTitle}
                   onChange={(event) => setNewTaskTitle(event.target.value)}
                   placeholder="New task title"
-                  className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:border-teal-700 sm:w-64"
+                  className="max-w-[320px] min-w-0 flex-1 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:border-teal-700"
                 />
                 <select
                   value={newTaskAssignee ?? ""}
                   onChange={(e) => setNewTaskAssignee(Number(e.target.value))}
-                  className="rounded-2xl border border-black/10 bg-white px-3 py-2 text-sm outline-none"
+                  className="max-w-[200px] flex-shrink-0 rounded-2xl border border-black/10 bg-white px-3 py-2 text-sm outline-none"
                 >
                   {members.map((m) => (
                     <option key={m.workspace_member_id} value={m.user_id}>
@@ -505,7 +505,7 @@ export function DashboardShell() {
                     </option>
                   ))}
                 </select>
-                <button className="secondary-button" onClick={handleCreateTask} disabled={isSubmittingTask}>
+                <button className="secondary-button flex-shrink-0" onClick={handleCreateTask} disabled={isSubmittingTask}>
                   {isSubmittingTask ? (
                     <Loader2 className="mr-2 size-4 animate-spin" />
                   ) : (
@@ -569,10 +569,10 @@ export function DashboardShell() {
               </div>
 
               <div className="space-y-3">
-                <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="mb-3 flex items-start justify-between gap-3 flex-wrap">
                   <div>
                     <p className="muted-label">Channels</p>
-                    <div className="mt-2 flex gap-2">
+                    <div className="mt-2 flex gap-2 flex-wrap max-w-full">
                       {channels.map((c) => (
                         <button
                           key={c.channel_id}
@@ -593,29 +593,31 @@ export function DashboardShell() {
                       value={newChannelName}
                       onChange={(e) => setNewChannelName(e.target.value)}
                       placeholder="New channel"
-                      className="rounded-2xl border border-black/10 bg-white px-3 py-2 text-sm outline-none"
+                      className="max-w-[180px] min-w-0 rounded-2xl border border-black/10 bg-white px-3 py-2 text-sm outline-none"
                     />
-                    <button className="secondary-button" onClick={handleCreateChannel} disabled={isSubmittingChannel}>
+                    <button className="secondary-button flex-shrink-0" onClick={handleCreateChannel} disabled={isSubmittingChannel}>
                       <Plus className="size-4 mr-2" />
                       Create
                     </button>
                   </div>
                 </div>
 
-                {messages.map((message) => (
-                  <div key={message.message_id} className="rounded-2xl border border-black/5 bg-slate-50 p-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 font-medium text-slate-700">
-                          {usersById[message.sender_id]?.email?.charAt(0).toUpperCase() ?? "U"}
+                <div className="space-y-3 max-h-[360px] overflow-auto">
+                  {messages.map((message) => (
+                    <div key={message.message_id} className="rounded-2xl border border-black/5 bg-slate-50 p-4">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 font-medium text-slate-700">
+                            {usersById[message.sender_id]?.email?.charAt(0).toUpperCase() ?? "U"}
+                          </div>
+                          <p className="font-medium text-ink">{usersById[message.sender_id]?.email ?? `User #${message.sender_id}`}</p>
                         </div>
-                        <p className="font-medium text-ink">{usersById[message.sender_id]?.email ?? `User #${message.sender_id}`}</p>
+                        <p className="font-mono text-xs text-slate-500">{formatDate(message.created_at)}</p>
                       </div>
-                      <p className="font-mono text-xs text-slate-500">{formatDate(message.created_at)}</p>
+                      <p className="mt-3 text-sm leading-6 text-slate-600">{message.content}</p>
                     </div>
-                    <p className="mt-3 text-sm leading-6 text-slate-600">{message.content}</p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
 
               <div className="space-y-3 rounded-2xl border border-dashed border-black/10 bg-white p-4">

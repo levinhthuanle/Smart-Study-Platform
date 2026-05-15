@@ -126,6 +126,9 @@ export const backendApi = {
   getWorkspaces(token: string) {
     return request<WorkspaceResponse[]>("/api/workspaces/all", { method: "GET", token });
   },
+  getWorkspace(token: string, workspaceId: number) {
+    return request<WorkspaceResponse>(`/api/workspaces/${workspaceId}`, { method: "GET", token });
+  },
   createWorkspace(token: string, name: string) {
     return request<WorkspaceResponse>("/api/workspaces", {
       method: "POST",

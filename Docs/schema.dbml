@@ -1,0 +1,102 @@
+Table "alembic_version" {
+  "version_num" "character varying(32)" [pk, not null]
+}
+
+Table "channels" {
+  "channel_id" integer [pk, not null]
+  "workspace_id" integer [not null]
+  "name" "character varying(255)" [not null]
+  "description" "character varying(500)"
+  "color" "character varying(7)" [not null, default: `'#3B82F6'::charactervarying`]
+  "created_by" integer [not null]
+  "created_at" timestamp [not null, default: `now()`]
+
+  Indexes {
+    channel_id [type: btree, name: "ix_channels_channel_id"]
+    workspace_id [type: btree, name: "ix_channels_workspace_id"]
+  }
+}
+
+Table "messages" {
+  "message_id" integer [pk, not null]
+  "workspace_id" integer [not null]
+  "sender_id" integer [not null]
+  "content" text [not null]
+  "created_at" timestamp [not null, default: `now()`]
+  "channel_id" integer [not null]
+
+  Indexes {
+    channel_id [type: btree, name: "ix_messages_channel_id"]
+    message_id [type: btree, name: "ix_messages_message_id"]
+  }
+}
+
+Table "tasks" {
+  "task_id" integer [pk, not null]
+  "workspace_id" integer [not null]
+  "title" "character varying(255)" [not null]
+  "description" text [not null]
+  "status" "character varying(255)" [not null]
+  "assigned_to" integer [not null]
+  "due_date" timestamp [not null]
+  "updated_at" timestamp [not null, default: `now()`]
+  "created_at" timestamp [not null, default: `now()`]
+
+  Indexes {
+    task_id [type: btree, name: "ix_tasks_task_id"]
+  }
+}
+
+Table "users" {
+  "user_id" integer [pk, not null]
+  "email" "character varying(255)" [unique, not null]
+  "hashed_pwd" "character varying(255)" [not null]
+  "created_at" timestamp [not null, default: `now()`]
+
+  Indexes {
+    user_id [type: btree, name: "ix_users_user_id"]
+  }
+}
+
+Table "workspace_members" {
+  "workspace_member_id" integer [pk, not null]
+  "workspace_id" integer [not null]
+  "user_id" integer [not null]
+  "role" "character varying(50)" [not null]
+  "created_at" timestamp [not null, default: `now()`]
+
+  Indexes {
+    workspace_member_id [type: btree, name: "ix_workspace_members_workspace_member_id"]
+  }
+}
+
+Table "workspaces" {
+  "workspace_id" integer [pk, not null]
+  "owner_id" integer [not null]
+  "name" "character varying(255)" [not null]
+  "created_at" timestamp [not null, default: `now()`]
+
+  Indexes {
+    workspace_id [type: btree, name: "ix_workspaces_workspace_id"]
+  }
+}
+
+Ref "channels_created_by_fkey":"users"."user_id" < "channels"."created_by"
+
+Ref "channels_workspace_id_fkey":"workspaces"."workspace_id" < "channels"."workspace_id"
+
+Ref "fk_messages_channel_id":"channels"."channel_id" < "messages"."channel_id"
+
+Ref "messages_sender_id_fkey":"users"."user_id" < "messages"."sender_id"
+
+Ref "messages_workspace_id_fkey":"workspaces"."workspace_id" < "messages"."workspace_id"
+
+Ref "tasks_assigned_to_fkey":"users"."user_id" < "tasks"."assigned_to"
+
+Ref "tasks_workspace_id_fkey":"workspaces"."workspace_id" < "tasks"."workspace_id"
+
+Ref "workspace_members_user_id_fkey":"users"."user_id" < "workspace_members"."user_id"
+
+Ref "workspace_members_workspace_id_fkey":"workspaces"."workspace_id" < "workspace_members"."workspace_id"
+
+Ref "workspaces_owner_id_fkey":"users"."user_id" < "workspaces"."owner_id"
