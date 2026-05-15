@@ -37,3 +37,15 @@ class Workspace(Base):
         back_populates="workspace",
         cascade="all, delete-orphan",
     )
+
+    tasks = relationship(
+        "Task",
+        back_populates="workspace",
+        cascade="all, delete-orphan",
+    )
+
+    messages = relationship(
+        "Message",
+        back_populates="workspace",
+        cascade="all, delete-orphan",
+    )

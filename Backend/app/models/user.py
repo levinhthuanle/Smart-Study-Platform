@@ -38,3 +38,13 @@ class User(Base):
         "WorkspaceMember",
         back_populates="user",
     )
+
+    assigned_tasks = relationship(
+        "Task",
+        back_populates="assignee",
+    )
+
+    sent_messages = relationship(
+        "Message",
+        back_populates="sender",
+    )
