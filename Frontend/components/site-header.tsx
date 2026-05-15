@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowRight, LogOut, Sparkles, UserCircle2 } from "lucide-react";
 
@@ -10,6 +11,7 @@ type HeaderAuthState = {
 };
 
 export function SiteHeader() {
+  const router = useRouter();
   const [authState, setAuthState] = useState<HeaderAuthState>({
     isAuthenticated: false,
     isLoading: true,
@@ -31,6 +33,7 @@ export function SiteHeader() {
       isAuthenticated: false,
       isLoading: false,
     });
+    router.push("/");
   }
 
   return (
