@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useRouter } from "next/navigation";
 import {
   Circle,
   Loader2,
@@ -75,16 +76,22 @@ export function DashboardShell() {
   const [workspaces, setWorkspaces] = useState<WorkspaceResponse[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<number | null>(null);
   const [members, setMembers] = useState<WorkspaceMemberResponse[]>([]);
+  const [channels, setChannels] = useState<import("@/lib/api").ChannelResponse[]>([]);
   const [tasks, setTasks] = useState<TaskResponse[]>([]);
   const [messages, setMessages] = useState<MessageResponse[]>([]);
+  const [selectedChannelId, setSelectedChannelId] = useState<number | null>(null);
+  const [usersById, setUsersById] = useState<Record<number, import("@/lib/api").UserResponse>>({});
   const [newMessage, setNewMessage] = useState("");
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskAssignee, setNewTaskAssignee] = useState<number | null>(null);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmittingMessage, setIsSubmittingMessage] = useState(false);
   const [isSubmittingTask, setIsSubmittingTask] = useState(false);
   const [isSubmittingWorkspace, setIsSubmittingWorkspace] = useState(false);
+  const [newChannelName, setNewChannelName] = useState("");
+  const [isSubmittingChannel, setIsSubmittingChannel] = useState(false);
 
   const selectedWorkspace = useMemo(() => {
     return workspaces.find((workspace: WorkspaceResponse) => workspace.workspace_id === selectedWorkspaceId) || null;
@@ -165,6 +172,27 @@ export function DashboardShell() {
         setMembers(memberList);
         setTasks(taskList);
         setMessages(messageList);
+
+        // load channels
+        try {
+          const channelList = await backendApi.getWorkspaceChannels(accessToken, workspaceId);
+          setChannels(channelList);
+          setSelectedChannelId((current: number | null) => current ?? channelList[0]?.channel_id ?? null);
+        } catch (err) {
+          // ignore channel load errors for now
+        }
+
+        // fetch user details for members
+        try {
+          const userRequests = memberList.map((m) => backendApi.getUser(accessToken, m.user_id));
+          const users = await Promise.all(userRequests);
+          const map: Record<number, import("@/lib/api").UserResponse> = {};
+          users.forEach((u) => (map[u.user_id] = u));
+          setUsersById(map);
+          setNewTaskAssignee((current) => current ?? (map[memberList[0]?.user_id]?.user_id ?? null));
+        } catch (err) {
+          // ignore
+        }
       } catch (requestError) {
         if (!cancelled) {
           setError(requestError instanceof Error ? requestError.message : "Failed to load selected workspace");
@@ -244,6 +272,24 @@ export function DashboardShell() {
     }
   }
 
+  async function handleCreateChannel() {
+    if (!token || !selectedWorkspaceId || !newChannelName.trim()) return;
+
+    setIsSubmittingChannel(true);
+    setError(null);
+
+    try {
+      const channel = await backendApi.createChannel(token, selectedWorkspaceId, { name: newChannelName.trim() });
+      setChannels((current) => [channel, ...current]);
+      setSelectedChannelId(channel.channel_id);
+      setNewChannelName("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create channel");
+    } finally {
+      setIsSubmittingChannel(false);
+    }
+  }
+
   async function handleSendMessage() {
     if (!token || !selectedWorkspaceId || !newMessage.trim()) {
       return;
@@ -253,7 +299,7 @@ export function DashboardShell() {
     setError(null);
 
     try {
-      await backendApi.createMessage(token, selectedWorkspaceId, newMessage.trim());
+      await backendApi.createMessage(token, selectedWorkspaceId, newMessage.trim(), selectedChannelId ?? undefined);
       setNewMessage("");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Failed to send message");
@@ -278,7 +324,7 @@ export function DashboardShell() {
         title: newTaskTitle.trim(),
         description: "Created from the frontend dashboard shell.",
         status: "Todo",
-        assigned_to: currentUser.user_id,
+        assigned_to: newTaskAssignee ?? currentUser.user_id,
         due_date: dueDate.toISOString(),
       });
 
@@ -292,6 +338,7 @@ export function DashboardShell() {
   }
 
   const groupedTasks = useMemo(() => groupTasks(tasks), [tasks]);
+  const router = useRouter();
 
   if (!token) {
     return (
@@ -327,7 +374,7 @@ export function DashboardShell() {
         </div>
 
         <div className="space-y-3">
-          {workspaces.map((workspace: WorkspaceResponse) => {
+                {workspaces.map((workspace: WorkspaceResponse) => {
             const active = workspace.workspace_id === selectedWorkspaceId;
 
             return (
@@ -338,7 +385,7 @@ export function DashboardShell() {
                     ? "border-teal-900/20 bg-white shadow-soft"
                     : "border-black/5 bg-white/85 hover:-translate-y-0.5 hover:shadow-soft"
                 }`}
-                onClick={() => setSelectedWorkspaceId(workspace.workspace_id)}
+                onClick={() => router.push(`/workspace/${workspace.workspace_id}`)}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -447,6 +494,17 @@ export function DashboardShell() {
                   placeholder="New task title"
                   className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:border-teal-700 sm:w-64"
                 />
+                <select
+                  value={newTaskAssignee ?? ""}
+                  onChange={(e) => setNewTaskAssignee(Number(e.target.value))}
+                  className="rounded-2xl border border-black/10 bg-white px-3 py-2 text-sm outline-none"
+                >
+                  {members.map((m) => (
+                    <option key={m.workspace_member_id} value={m.user_id}>
+                      {usersById[m.user_id]?.email ?? `User #${m.user_id}`}
+                    </option>
+                  ))}
+                </select>
                 <button className="secondary-button" onClick={handleCreateTask} disabled={isSubmittingTask}>
                   {isSubmittingTask ? (
                     <Loader2 className="mr-2 size-4 animate-spin" />
@@ -476,7 +534,7 @@ export function DashboardShell() {
                             <div>
                               <h4 className="font-medium text-ink">{task.title}</h4>
                               <p className="mt-2 text-sm leading-6 text-slate-500">
-                                Assigned to #{task.assigned_to}
+                                Assigned to {usersById[task.assigned_to]?.email ?? `#${task.assigned_to}`}
                               </p>
                             </div>
                             <Circle className="size-4 text-slate-300" />
@@ -511,10 +569,48 @@ export function DashboardShell() {
               </div>
 
               <div className="space-y-3">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="muted-label">Channels</p>
+                    <div className="mt-2 flex gap-2">
+                      {channels.map((c) => (
+                        <button
+                          key={c.channel_id}
+                          onClick={() => setSelectedChannelId(c.channel_id)}
+                          className={`rounded-full px-3 py-1 text-sm font-medium ${
+                            selectedChannelId === c.channel_id ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-700"
+                          }`}
+                        >
+                          <span className="mr-2 inline-block h-3 w-3 rounded-full" style={{ background: c.color }} />
+                          {c.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={newChannelName}
+                      onChange={(e) => setNewChannelName(e.target.value)}
+                      placeholder="New channel"
+                      className="rounded-2xl border border-black/10 bg-white px-3 py-2 text-sm outline-none"
+                    />
+                    <button className="secondary-button" onClick={handleCreateChannel} disabled={isSubmittingChannel}>
+                      <Plus className="size-4 mr-2" />
+                      Create
+                    </button>
+                  </div>
+                </div>
+
                 {messages.map((message) => (
                   <div key={message.message_id} className="rounded-2xl border border-black/5 bg-slate-50 p-4">
                     <div className="flex items-center justify-between text-sm">
-                      <p className="font-medium text-ink">User #{message.sender_id}</p>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 font-medium text-slate-700">
+                          {usersById[message.sender_id]?.email?.charAt(0).toUpperCase() ?? "U"}
+                        </div>
+                        <p className="font-medium text-ink">{usersById[message.sender_id]?.email ?? `User #${message.sender_id}`}</p>
+                      </div>
                       <p className="font-mono text-xs text-slate-500">{formatDate(message.created_at)}</p>
                     </div>
                     <p className="mt-3 text-sm leading-6 text-slate-600">{message.content}</p>

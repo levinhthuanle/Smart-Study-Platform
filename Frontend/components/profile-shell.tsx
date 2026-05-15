@@ -38,15 +38,15 @@ export function ProfileShell() {
     }
 
     let cancelled = false;
-
+    const tokenChecked = token;
     async function loadProfile() {
       setIsLoading(true);
       setError(null);
 
       try {
         const [meData, workspaceList] = await Promise.all([
-          backendApi.getMe(token),
-          backendApi.getWorkspaces(token),
+          backendApi.getMe(tokenChecked),
+          backendApi.getWorkspaces(tokenChecked),
         ]);
 
         if (cancelled) {

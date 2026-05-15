@@ -97,6 +97,7 @@ export type TaskResponse = {
 export type MessageResponse = {
   message_id: number;
   workspace_id: number;
+  channel_id: number;
   sender_id: number;
   content: string;
   created_at: string;
@@ -105,6 +106,16 @@ export type MessageResponse = {
 export type UserResponse = {
   user_id: number;
   email: string;
+  created_at: string;
+};
+
+export type ChannelResponse = {
+  channel_id: number;
+  workspace_id: number;
+  name: string;
+  description?: string | null;
+  color: string;
+  created_by: number;
   created_at: string;
 };
 
@@ -134,6 +145,13 @@ export const backendApi = {
       token,
     });
   },
+  updateTask(token: string, workspaceId: number, taskId: number, payload: Partial<{title:string;description:string;status:string;assigned_to:number;due_date:string;}>) {
+    return request<TaskResponse>(`/api/workspaces/${workspaceId}/tasks/${taskId}`, {
+      method: "PATCH",
+      token,
+      body: payload,
+    });
+  },
   createTask(
     token: string,
     workspaceId: number,
@@ -157,12 +175,30 @@ export const backendApi = {
       token,
     });
   },
-  createMessage(token: string, workspaceId: number, content: string) {
+  createMessage(token: string, workspaceId: number, content: string, channelId?: number) {
+    const body: Record<string, unknown> = { content };
+    if (channelId) body.channel_id = channelId;
     return request<MessageResponse>(`/api/workspaces/${workspaceId}/messages`, {
       method: "POST",
       token,
-      body: { content },
+      body,
     });
+  },
+  getWorkspaceChannels(token: string, workspaceId: number) {
+    return request<ChannelResponse[]>(`/api/workspaces/${workspaceId}/channels`, {
+      method: "GET",
+      token,
+    });
+  },
+  createChannel(token: string, workspaceId: number, payload: { name: string; description?: string | null; color?: string | null }) {
+    return request<ChannelResponse>(`/api/workspaces/${workspaceId}/channels`, {
+      method: "POST",
+      token,
+      body: payload,
+    });
+  },
+  getUser(token: string | null, userId: number) {
+    return request<UserResponse>(`/api/users/${userId}`, { method: "GET", token });
   },
 };
 
