@@ -48,3 +48,8 @@ class User(Base):
         "Message",
         back_populates="sender",
     )
+
+    created_channels = relationship(
+        "Channel",
+        back_populates="creator",
+    )

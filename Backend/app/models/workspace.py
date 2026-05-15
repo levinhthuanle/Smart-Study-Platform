@@ -49,3 +49,9 @@ class Workspace(Base):
         back_populates="workspace",
         cascade="all, delete-orphan",
     )
+
+    channels = relationship(
+        "Channel",
+        back_populates="workspace",
+        cascade="all, delete-orphan",
+    )

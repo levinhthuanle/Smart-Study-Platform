@@ -8,6 +8,8 @@ class MessageCreate(BaseModel):
 		min_length=1,
 	)
 
+	channel_id: int | None = None
+
 
 class MessageUpdate(BaseModel):
 	content: str | None = Field(
@@ -19,6 +21,7 @@ class MessageUpdate(BaseModel):
 class MessageResponse(BaseModel):
 	message_id: int
 	workspace_id: int
+	channel_id: int
 	sender_id: int
 	content: str
 	created_at: datetime

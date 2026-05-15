@@ -18,6 +18,12 @@ class Message(Base):
 		nullable=False,
 	)
 
+	channel_id: Mapped[int] = mapped_column(
+		ForeignKey("channels.channel_id"),
+		nullable=False,
+		index=True,
+	)
+
 	sender_id: Mapped[int] = mapped_column(
 		ForeignKey("users.user_id"),
 		nullable=False,
@@ -36,6 +42,11 @@ class Message(Base):
 
 	workspace = relationship(
 		"Workspace",
+		back_populates="messages",
+	)
+
+	channel = relationship(
+		"Channel",
 		back_populates="messages",
 	)
 
