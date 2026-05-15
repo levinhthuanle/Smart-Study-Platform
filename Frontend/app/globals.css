@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-canvas: 245 242 236;
+  --color-surface: 255 253 249;
+  --color-surface-strong: 247 244 238;
+  --color-ink: 24 24 27;
+  --color-muted: 113 113 122;
+  --color-border: 226 221 213;
+  --color-accent: 23 94 122;
+  --color-accent-soft: 211 236 243;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-sans), sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(23, 94, 122, 0.12), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(23, 94, 122, 0.08), transparent 24%),
+    linear-gradient(180deg, rgb(248, 245, 240) 0%, rgb(242, 238, 231) 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle at 1px 1px, rgba(15, 23, 42, 0.05) 1px, transparent 0);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.35), transparent 70%);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: rgba(23, 94, 122, 0.18);
+}
+
+@layer components {
+  .glass-panel {
+    @apply border border-black/5 bg-white/75 shadow-soft backdrop-blur-xl;
+  }
+
+  .section-shell {
+    @apply mx-auto w-full max-w-7xl px-6 py-8 md:px-8;
+  }
+
+  .muted-label {
+    @apply text-xs font-medium uppercase tracking-[0.24em] text-slate-500;
+  }
+
+  .section-title {
+    @apply text-3xl font-semibold tracking-tight text-ink md:text-4xl;
+  }
+
+  .section-copy {
+    @apply max-w-2xl text-sm leading-7 text-slate-600 md:text-base;
+  }
+
+  .primary-button {
+    @apply inline-flex items-center justify-center rounded-2xl bg-ink px-5 py-3 text-sm font-medium text-white transition hover:-translate-y-0.5 hover:bg-slate-800;
+  }
+
+  .secondary-button {
+    @apply inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white/80 px-5 py-3 text-sm font-medium text-ink transition hover:-translate-y-0.5 hover:bg-white;
+  }
+
+  .panel {
+    @apply rounded-[28px] border border-black/5 bg-white/80 p-6 shadow-soft backdrop-blur-xl;
+  }
+
+  .panel-subtle {
+    @apply rounded-[24px] border border-black/5 bg-surface/70 p-5;
+  }
+}
