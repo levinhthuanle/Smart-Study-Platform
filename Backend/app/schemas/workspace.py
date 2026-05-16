@@ -9,6 +9,11 @@ class WorkspaceBase(BaseModel):
         max_length=255,
     )
 
+    workspace_avt_url: str | None = Field(
+        default=None,
+        max_length=512,
+    )
+
 
 class WorkspaceCreate(WorkspaceBase):
     pass
@@ -19,6 +24,11 @@ class WorkspaceUpdate(BaseModel):
         default=None,
         min_length=1,
         max_length=255,
+    )
+
+    workspace_avt_url: str | None = Field(
+        default=None,
+        max_length=512,
     )
 
 

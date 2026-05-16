@@ -38,6 +38,8 @@ async def register_user(
 
     new_user = User(
         email=user_data.email,
+        username=user_data.username,
+        avt_url=user_data.avt_url,
         hashed_pwd=hash_password(
             user_data.password
         ),

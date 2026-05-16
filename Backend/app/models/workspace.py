@@ -21,6 +21,11 @@ class Workspace(Base):
         String(255),
         nullable=False,
     )
+
+    workspace_avt_url: Mapped[str | None] = mapped_column(
+        String(512),
+        nullable=True,
+    )
     
     created_at: Mapped[TIMESTAMP] = mapped_column(
         TIMESTAMP(timezone=True),

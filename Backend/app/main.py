@@ -7,6 +7,7 @@ from app.api.message import router as messages_router
 from app.api.task import router as tasks_router
 from app.api.user import router as users_router
 from app.api.workspace import router as workspaces_router
+from app.api.workspace_invites import router as workspace_invites_router
 from app.api.workspace_member import router as workspace_members_router
 from app.websocket.message_ws import router as message_ws_router
 
@@ -36,6 +37,7 @@ async def root():
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(workspaces_router)
+app.include_router(workspace_invites_router)
 app.include_router(workspace_members_router)
 app.include_router(channels_router)
 app.include_router(tasks_router)

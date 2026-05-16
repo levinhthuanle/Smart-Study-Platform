@@ -19,6 +19,17 @@ class User(Base):
         nullable=False,
     )
 
+    username: Mapped[str | None] = mapped_column(
+        String(255),
+        unique=True,
+        nullable=True,
+    )
+
+    avt_url: Mapped[str | None] = mapped_column(
+        String(512),
+        nullable=True,
+    )
+
     hashed_pwd: Mapped[str] = mapped_column(
         String(255),
         nullable=False,

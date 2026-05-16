@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import (
     BaseModel,
     EmailStr,
@@ -7,6 +9,8 @@ from pydantic import (
 
 class UserRegister(BaseModel):
     email: EmailStr
+    username: str
+    avt_url: str | None = None
     password: str
     confirm_password: str
 
@@ -33,7 +37,15 @@ class TokenRefreshRequest(BaseModel):
 class UserResponse(BaseModel):
     user_id: int
     email: EmailStr
+    username: str | None = None
+    avt_url: str | None = None
+    created_at: datetime
 
     model_config = {
         "from_attributes": True
     }
+
+
+class UserUpdate(BaseModel):
+    username: str | None = None
+    avt_url: str | None = None
