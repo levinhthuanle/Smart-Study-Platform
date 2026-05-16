@@ -534,7 +534,7 @@ export function DashboardShell() {
                             <div>
                               <h4 className="font-medium text-ink">{task.title}</h4>
                               <p className="mt-2 text-sm leading-6 text-slate-500">
-                                Assigned to {usersById[task.assigned_to]?.username ?? usersById[task.assigned_to]?.email ?? `#${task.assigned_to}`}
+                                {selectedWorkspace?.description ?? ""}
                               </p>
                             </div>
                             <Circle className="size-4 text-slate-300" />
@@ -603,7 +603,9 @@ export function DashboardShell() {
                 </div>
 
                 <div className="space-y-3 max-h-[360px] overflow-auto">
-                  {messages.map((message) => (
+                  {(
+                    selectedChannelId ? messages.filter((m) => m.channel_id === selectedChannelId) : messages
+                  ).map((message) => (
                     <div key={message.message_id} className="rounded-2xl border border-black/5 bg-slate-50 p-4">
                       <div className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-3">

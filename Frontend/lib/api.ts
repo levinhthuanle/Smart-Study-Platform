@@ -80,6 +80,7 @@ export type WorkspaceResponse = {
   owner_id: number;
   name: string;
   workspace_avt_url?: string | null;
+  description?: string | null;
   created_at: string;
 };
 

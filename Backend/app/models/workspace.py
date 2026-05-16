@@ -26,6 +26,10 @@ class Workspace(Base):
         String(512),
         nullable=True,
     )
+    description: Mapped[str | None] = mapped_column(
+        String(1024),
+        nullable=True,
+    )
     
     created_at: Mapped[TIMESTAMP] = mapped_column(
         TIMESTAMP(timezone=True),

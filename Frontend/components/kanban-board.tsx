@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { backendApi, type TaskResponse, type UserResponse } from "@/lib/api";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 
 type Props = {
   workspaceId: number;
@@ -23,6 +23,12 @@ function statusKey(status: string) {
 export default function KanbanBoard({ workspaceId, token, usersById = {} }: TaskWithUsersProps) {
   const [tasks, setTasks] = useState<TaskResponse[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newDescription, setNewDescription] = useState("");
+  const [newAssignee, setNewAssignee] = useState<number | null>(null);
+  const [newDueDate, setNewDueDate] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
   const columns = useMemo(() => ["Todo", "In Progress", "Done"], []);
 
   useEffect(() => {
@@ -64,6 +70,51 @@ export default function KanbanBoard({ workspaceId, token, usersById = {} }: Task
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold">Kanban Board</h2>
+      <div className="flex items-center gap-3">
+        <button
+          className="secondary-button"
+          onClick={() => setShowCreate((s) => !s)}
+        >
+          <Plus className="mr-2 size-4" /> Add Task
+        </button>
+        {showCreate ? (
+          <div className="ml-3 flex items-center gap-2">
+            <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Title" className="rounded-2xl border px-3 py-2" />
+            <input value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder="Description" className="rounded-2xl border px-3 py-2" />
+            <select value={newAssignee ?? ""} onChange={(e) => setNewAssignee(e.target.value ? Number(e.target.value) : null)} className="rounded-2xl border px-3 py-2">
+              <option value="">Unassigned</option>
+              {Object.keys(usersById).map((id) => (
+                <option key={id} value={id}>{usersById[Number(id)]?.username ?? `#${id}`}</option>
+              ))}
+            </select>
+            <input type="date" value={newDueDate ?? ""} onChange={(e) => setNewDueDate(e.target.value)} className="rounded-2xl border px-3 py-2" />
+            <button className="primary-button" disabled={isCreating} onClick={async () => {
+              if (!token || !newTitle.trim()) return;
+              setIsCreating(true);
+              try {
+                const payload = {
+                  title: newTitle.trim(),
+                  description: newDescription.trim(),
+                  status: "Todo",
+                  assigned_to: newAssignee ?? (Object.keys(usersById)[0] ? Number(Object.keys(usersById)[0]) : 0),
+                  due_date: newDueDate ? new Date(newDueDate).toISOString() : new Date().toISOString(),
+                };
+                const task = await backendApi.createTask(token, workspaceId, payload);
+                setTasks((current) => [task, ...current]);
+                setNewTitle("");
+                setNewDescription("");
+                setNewAssignee(null);
+                setNewDueDate(null);
+                setShowCreate(false);
+              } catch (err) {
+                // ignore for now
+              } finally {
+                setIsCreating(false);
+              }
+            }}>Create</button>
+          </div>
+        ) : null}
+      </div>
       {loading ? (
         <div className="flex items-center gap-2 text-slate-600">
           <Loader2 className="animate-spin" /> Loading tasks...

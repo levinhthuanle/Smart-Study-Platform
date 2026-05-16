@@ -13,6 +13,10 @@ class WorkspaceBase(BaseModel):
         default=None,
         max_length=512,
     )
+    description: str | None = Field(
+        default=None,
+        max_length=1024,
+    )
 
 
 class WorkspaceCreate(WorkspaceBase):
@@ -29,6 +33,10 @@ class WorkspaceUpdate(BaseModel):
     workspace_avt_url: str | None = Field(
         default=None,
         max_length=512,
+    )
+    description: str | None = Field(
+        default=None,
+        max_length=1024,
     )
 
 
