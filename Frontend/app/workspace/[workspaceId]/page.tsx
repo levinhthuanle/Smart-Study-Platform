@@ -3,7 +3,7 @@
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { backendApi, type WorkspaceResponse, type TaskResponse, type WorkspaceMemberResponse, type ChannelResponse, type UserResponse } from "@/lib/api";
-import { Loader2, CalendarDays, MessageCircle, Link2, Copy, ShieldCheck } from "lucide-react";
+import { Loader2, CalendarDays, MessageCircle, Link2, Copy, ShieldCheck, ArrowLeft } from "lucide-react";
 
 export default function WorkspacePage() {
   const params = useParams();
@@ -130,6 +130,9 @@ export default function WorkspacePage() {
             <p className="text-sm text-slate-500 mt-1">Workspace #{workspace?.workspace_id}</p>
           </div>
           <div className="flex gap-3">
+            <button className="secondary-button" onClick={() => router.back()}>
+              <ArrowLeft className="mr-2" /> Back
+            </button>
             {isOwner ? (
               <button className="secondary-button" onClick={handleCreateInvite} disabled={isCreatingInvite}>
                 <Link2 className="mr-2" />
@@ -188,7 +191,7 @@ export default function WorkspacePage() {
                       )}
                     </div>
                     <div>
-                      <div className="font-medium">{usersById[m.user_id]?.username || `User #${m.user_id}`}</div>
+                      <div className="font-medium">{usersById[m.user_id]?.username ?? usersById[m.user_id]?.email ?? "Unknown member"}</div>
                       <div className="text-xs text-slate-500">Role: {m.role}</div>
                     </div>
                   </div>

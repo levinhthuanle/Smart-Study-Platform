@@ -658,7 +658,7 @@ export function DashboardShell() {
                     className="flex items-center justify-between rounded-2xl border border-black/5 bg-white p-4"
                   >
                     <div>
-                      <p className="font-medium text-ink">User #{member.user_id}</p>
+                      <p className="font-medium text-ink">{usersById[member.user_id]?.username ?? usersById[member.user_id]?.email ?? `User #${member.user_id}`}</p>
                       <p className="mt-1 text-sm text-slate-500">Role: {member.role}</p>
                     </div>
                     <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">

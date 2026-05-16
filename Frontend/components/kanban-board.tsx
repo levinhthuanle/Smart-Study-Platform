@@ -1,7 +1,12 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { backendApi, type TaskResponse, type UserResponse } from "@/lib/api";
+import {
+  backendApi,
+  type TaskResponse,
+  type UserResponse,
+  type WorkspaceMemberResponse,
+} from "@/lib/api";
 import { Loader2, Plus } from "lucide-react";
 
 type Props = {
@@ -20,8 +25,10 @@ function statusKey(status: string) {
   return "Todo";
 }
 
-export default function KanbanBoard({ workspaceId, token, usersById = {} }: TaskWithUsersProps) {
+export default function KanbanBoard({ workspaceId, token, usersById }: TaskWithUsersProps) {
   const [tasks, setTasks] = useState<TaskResponse[]>([]);
+  const [members, setMembers] = useState<WorkspaceMemberResponse[]>([]);
+  const [memberUsersById, setMemberUsersById] = useState<Record<number, UserResponse>>({});
   const [loading, setLoading] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState("");
@@ -29,18 +36,43 @@ export default function KanbanBoard({ workspaceId, token, usersById = {} }: Task
   const [newAssignee, setNewAssignee] = useState<number | null>(null);
   const [newDueDate, setNewDueDate] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [assigneesLoaded, setAssigneesLoaded] = useState(false);
   const columns = useMemo(() => ["Todo", "In Progress", "Done"], []);
+  const externalUsersById = useMemo(() => usersById ?? {}, [usersById]);
+  const resolvedUsersById = useMemo(
+    () => (Object.keys(externalUsersById).length > 0 ? externalUsersById : memberUsersById),
+    [externalUsersById, memberUsersById]
+  );
+  const isLoadingAssignees = !assigneesLoaded && members.length > 0 && Object.keys(resolvedUsersById).length === 0;
+  const assigneeOptions = useMemo(() => {
+    return members
+      .map((m) => {
+        const user = resolvedUsersById[m.user_id];
+
+        return {
+          userId: m.user_id,
+          label: user?.username ?? user?.email ?? "Unknown member",
+        };
+      })
+      .filter((item, index, arr) => arr.findIndex((v) => v.userId === item.userId) === index);
+  }, [members, resolvedUsersById]);
 
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
     setLoading(true);
+    setError(null);
     backendApi
       .getWorkspaceTasks(token, workspaceId)
       .then((t) => {
         if (!cancelled) setTasks(t);
       })
-      .catch(() => {})
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load tasks");
+        }
+      })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
@@ -49,6 +81,56 @@ export default function KanbanBoard({ workspaceId, token, usersById = {} }: Task
       cancelled = true;
     };
   }, [token, workspaceId]);
+
+  useEffect(() => {
+    if (!token) return;
+    const accessToken = token;
+
+    let cancelled = false;
+    setAssigneesLoaded(false);
+
+    async function loadMembersAndUsers() {
+      try {
+        const workspaceMembers = await backendApi.getWorkspaceMembers(accessToken, workspaceId);
+        if (cancelled) return;
+
+        setMembers(workspaceMembers);
+
+        const sourceUsers = Object.keys(externalUsersById).length > 0 ? externalUsersById : {};
+        if (Object.keys(sourceUsers).length === 0) {
+          const users = await Promise.allSettled(
+            workspaceMembers.map((member) => backendApi.getUser(accessToken, member.user_id))
+          );
+
+          if (cancelled) return;
+
+          const map: Record<number, UserResponse> = {};
+          users.forEach((result) => {
+            if (result.status === "fulfilled") {
+              map[result.value.user_id] = result.value;
+            }
+          });
+          setMemberUsersById(map);
+        }
+
+        setNewAssignee((current) => current ?? workspaceMembers[0]?.user_id ?? null);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load members");
+        }
+      } finally {
+        if (!cancelled) {
+          setAssigneesLoaded(true);
+        }
+      }
+    }
+
+    void loadMembersAndUsers();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, workspaceId, externalUsersById]);
 
   function onDragStart(e: React.DragEvent, taskId: number) {
     e.dataTransfer.setData("text/plain", String(taskId));
@@ -63,7 +145,7 @@ export default function KanbanBoard({ workspaceId, token, usersById = {} }: Task
       const updated = await backendApi.updateTask(token, workspaceId, taskId, { status: newStatus });
       setTasks((current) => current.map((t) => (t.task_id === taskId ? updated : t)));
     } catch (err) {
-      // ignore
+      setError(err instanceof Error ? err.message : "Failed to update task");
     }
   }
 
@@ -81,33 +163,41 @@ export default function KanbanBoard({ workspaceId, token, usersById = {} }: Task
           <div className="ml-3 flex items-center gap-2">
             <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Title" className="rounded-2xl border px-3 py-2" />
             <input value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder="Description" className="rounded-2xl border px-3 py-2" />
-            <select value={newAssignee ?? ""} onChange={(e) => setNewAssignee(e.target.value ? Number(e.target.value) : null)} className="rounded-2xl border px-3 py-2">
-              <option value="">Unassigned</option>
-              {Object.keys(usersById).map((id) => (
-                <option key={id} value={id}>{usersById[Number(id)]?.username ?? `#${id}`}</option>
+            <select
+              value={newAssignee ?? ""}
+              onChange={(e) => setNewAssignee(e.target.value ? Number(e.target.value) : null)}
+              className="rounded-2xl border px-3 py-2"
+              disabled={isLoadingAssignees}
+            >
+              <option value="" disabled>
+                {isLoadingAssignees ? "Loading assignees..." : "Select assignee"}
+              </option>
+              {assigneeOptions.map((option) => (
+                <option key={option.userId} value={option.userId}>{option.label}</option>
               ))}
             </select>
             <input type="date" value={newDueDate ?? ""} onChange={(e) => setNewDueDate(e.target.value)} className="rounded-2xl border px-3 py-2" />
             <button className="primary-button" disabled={isCreating} onClick={async () => {
-              if (!token || !newTitle.trim()) return;
+              if (!token || !newTitle.trim() || !newAssignee) return;
               setIsCreating(true);
+              setError(null);
               try {
                 const payload = {
                   title: newTitle.trim(),
                   description: newDescription.trim(),
                   status: "Todo",
-                  assigned_to: newAssignee ?? (Object.keys(usersById)[0] ? Number(Object.keys(usersById)[0]) : 0),
+                  assigned_to: newAssignee,
                   due_date: newDueDate ? new Date(newDueDate).toISOString() : new Date().toISOString(),
                 };
                 const task = await backendApi.createTask(token, workspaceId, payload);
                 setTasks((current) => [task, ...current]);
                 setNewTitle("");
                 setNewDescription("");
-                setNewAssignee(null);
+                setNewAssignee(assigneeOptions[0]?.userId ?? null);
                 setNewDueDate(null);
                 setShowCreate(false);
               } catch (err) {
-                // ignore for now
+                setError(err instanceof Error ? err.message : "Failed to create task");
               } finally {
                 setIsCreating(false);
               }
@@ -115,6 +205,7 @@ export default function KanbanBoard({ workspaceId, token, usersById = {} }: Task
           </div>
         ) : null}
       </div>
+      {error ? <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
       {loading ? (
         <div className="flex items-center gap-2 text-slate-600">
           <Loader2 className="animate-spin" /> Loading tasks...
@@ -144,7 +235,7 @@ export default function KanbanBoard({ workspaceId, token, usersById = {} }: Task
                           <div className="font-medium">{task.title}</div>
                           <div className="text-xs text-slate-500">{task.description}</div>
                             <div className="mt-1 text-xs text-slate-500">
-                              Assigned to {usersById[task.assigned_to]?.username ?? `#${task.assigned_to}`}
+                              Assigned to {resolvedUsersById[task.assigned_to]?.username ?? resolvedUsersById[task.assigned_to]?.email ?? "Unknown member"}
                             </div>
                         </div>
                         <div className="text-xs text-slate-500">Due {new Date(task.due_date).toLocaleDateString()}</div>
