@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Loader2, Mail, Sparkles, Users } from "lucide-react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { Camera, Loader2, Mail, Sparkles, Users } from "lucide-react";
 
 import { backendApi, type UserResponse, type WorkspaceResponse } from "@/lib/api";
+
+function getDefaultAvatarUrl(user?: UserResponse | null) {
+  const seed = user?.username || user?.email || "smart-study";
+  return `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(seed)}`;
+}
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -25,6 +30,8 @@ export function ProfileShell() {
   const [workspaces, setWorkspaces] = useState<WorkspaceResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const storedToken = window.localStorage.getItem("smart-study-access-token");
@@ -73,6 +80,53 @@ export function ProfileShell() {
     };
   }, [token]);
 
+  async function handleAvatarUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file || !token) {
+      return;
+    }
+
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+    if (!cloudName || !uploadPreset) {
+      setError("Cloudinary is not configured. Set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET.");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", uploadPreset);
+      formData.append("folder", "smart-study-platform/avatars");
+
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const payload = (await response.json()) as { secure_url?: string; error?: { message?: string } };
+
+      if (!response.ok || !payload.secure_url) {
+        throw new Error(payload.error?.message || "Failed to upload avatar");
+      }
+
+      const updatedUser = await backendApi.updateMe(token, { avt_url: payload.secure_url });
+      setMe(updatedUser);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "Failed to upload avatar");
+    } finally {
+      setIsUploadingAvatar(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  }
+
   if (!token) {
     return (
       <div className="panel text-center">
@@ -113,13 +167,43 @@ export function ProfileShell() {
 
         <div className="space-y-4 rounded-[24px] border border-black/5 bg-slate-50 p-5">
           <div className="flex items-center gap-3">
-            <div className="flex size-14 items-center justify-center rounded-3xl bg-ink text-lg font-semibold text-white shadow-soft">
-              {me?.email?.slice(0, 1).toUpperCase() || "U"}
-            </div>
+            {me?.avt_url ? (
+              <img
+                src={me.avt_url}
+                alt={me.username || me.email || "User avatar"}
+                className="size-14 rounded-3xl object-cover shadow-soft"
+              />
+            ) : (
+              <img
+                src={getDefaultAvatarUrl(me)}
+                alt={me?.username || me?.email || "Default avatar"}
+                className="size-14 rounded-3xl object-cover shadow-soft"
+              />
+            )}
             <div>
               <p className="text-sm text-slate-500">Signed in as</p>
-              <h2 className="text-xl font-semibold text-ink">{me?.email || "Unknown user"}</h2>
+              <h2 className="text-xl font-semibold text-ink">{me?.username || me?.email || "Unknown user"}</h2>
+              {me?.email ? <p className="text-sm text-slate-500">{me.email}</p> : null}
             </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarUpload}
+            />
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploadingAvatar}
+            >
+              {isUploadingAvatar ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Camera className="mr-2 size-4" />}
+              {isUploadingAvatar ? "Uploading..." : "Change avatar"}
+            </button>
           </div>
 
           <div className="space-y-3 text-sm text-slate-600">

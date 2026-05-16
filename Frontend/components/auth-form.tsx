@@ -15,6 +15,7 @@ interface AuthFormProps {
 export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +34,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
     try {
       const payload = isRegister
-        ? await authApi.register(email, password, confirmPassword)
+        ? await authApi.register(email, password, confirmPassword, username)
         : await authApi.login(email, password);
 
       if (typeof window !== "undefined") {
@@ -72,6 +73,23 @@ export function AuthForm({ mode }: AuthFormProps) {
             />
           </div>
         </label>
+
+        {isRegister ? (
+          <label className="block space-y-2">
+            <span className="text-sm font-medium text-slate-700">Username</span>
+            <div className="flex items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3 focus-within:border-teal-700">
+              <input
+                type="text"
+                required
+                minLength={3}
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder="your-name"
+                className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
+              />
+            </div>
+          </label>
+        ) : null}
 
         <label className="block space-y-2">
           <span className="text-sm font-medium text-slate-700">Password</span>

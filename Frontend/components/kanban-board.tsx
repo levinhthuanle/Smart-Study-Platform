@@ -1,12 +1,16 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { backendApi, type TaskResponse } from "@/lib/api";
+import { backendApi, type TaskResponse, type UserResponse } from "@/lib/api";
 import { Loader2 } from "lucide-react";
 
 type Props = {
   workspaceId: number;
   token: string | null;
+};
+
+type TaskWithUsersProps = Props & {
+  usersById?: Record<number, UserResponse>;
 };
 
 function statusKey(status: string) {
@@ -16,7 +20,7 @@ function statusKey(status: string) {
   return "Todo";
 }
 
-export default function KanbanBoard({ workspaceId, token }: Props) {
+export default function KanbanBoard({ workspaceId, token, usersById = {} }: TaskWithUsersProps) {
   const [tasks, setTasks] = useState<TaskResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const columns = useMemo(() => ["Todo", "In Progress", "Done"], []);
@@ -88,6 +92,9 @@ export default function KanbanBoard({ workspaceId, token }: Props) {
                         <div>
                           <div className="font-medium">{task.title}</div>
                           <div className="text-xs text-slate-500">{task.description}</div>
+                            <div className="mt-1 text-xs text-slate-500">
+                              Assigned to {usersById[task.assigned_to]?.username ?? `#${task.assigned_to}`}
+                            </div>
                         </div>
                         <div className="text-xs text-slate-500">Due {new Date(task.due_date).toLocaleDateString()}</div>
                       </div>

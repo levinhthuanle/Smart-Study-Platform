@@ -52,7 +52,13 @@ export const authApi = {
       }
     );
   },
-  register(email: string, password: string, confirm_password: string) {
+  register(
+    email: string,
+    password: string,
+    confirm_password: string,
+    username: string,
+    avt_url?: string | null
+  ) {
     return request<{ access_token: string; refresh_token: string; token_type: string }>(
       "/api/auth/register",
       {
@@ -61,6 +67,8 @@ export const authApi = {
           email,
           password,
           confirm_password,
+          username,
+          ...(avt_url ? { avt_url } : {}),
         },
       }
     );
@@ -71,6 +79,7 @@ export type WorkspaceResponse = {
   workspace_id: number;
   owner_id: number;
   name: string;
+  workspace_avt_url?: string | null;
   created_at: string;
 };
 
@@ -106,7 +115,35 @@ export type MessageResponse = {
 export type UserResponse = {
   user_id: number;
   email: string;
+  username?: string | null;
+  avt_url?: string | null;
   created_at: string;
+};
+
+export type UserUpdateRequest = {
+  username?: string | null;
+  avt_url?: string | null;
+};
+
+export type WorkspaceInviteResponse = {
+  workspace_invite_id: number;
+  workspace_id: number;
+  workspace_name: string;
+  token: string;
+  invite_path: string;
+  created_at: string;
+  expires_at?: string | null;
+};
+
+export type WorkspaceInvitePreviewResponse = {
+  workspace_invite_id: number;
+  workspace_id: number;
+  workspace_name: string;
+  token: string;
+  expires_at?: string | null;
+  accepted_at?: string | null;
+  is_expired: boolean;
+  is_used: boolean;
 };
 
 export type ChannelResponse = {
@@ -129,11 +166,31 @@ export const backendApi = {
   getWorkspace(token: string, workspaceId: number) {
     return request<WorkspaceResponse>(`/api/workspaces/${workspaceId}`, { method: "GET", token });
   },
-  createWorkspace(token: string, name: string) {
+  createWorkspace(token: string, name: string, workspaceAvtUrl?: string | null) {
     return request<WorkspaceResponse>("/api/workspaces", {
       method: "POST",
       token,
-      body: { name },
+      body: {
+        name,
+        ...(workspaceAvtUrl ? { workspace_avt_url: workspaceAvtUrl } : {}),
+      },
+    });
+  },
+  createWorkspaceInvite(token: string, workspaceId: number) {
+    return request<WorkspaceInviteResponse>(`/api/workspaces/${workspaceId}/invites`, {
+      method: "POST",
+      token,
+    });
+  },
+  getWorkspaceInvite(inviteToken: string) {
+    return request<WorkspaceInvitePreviewResponse>(`/api/workspace-invites/${inviteToken}`, {
+      method: "GET",
+    });
+  },
+  acceptWorkspaceInvite(token: string, inviteToken: string) {
+    return request<WorkspaceMemberResponse>(`/api/workspace-invites/${inviteToken}/accept`, {
+      method: "POST",
+      token,
     });
   },
   getWorkspaceMembers(token: string, workspaceId: number) {
@@ -202,6 +259,13 @@ export const backendApi = {
   },
   getUser(token: string | null, userId: number) {
     return request<UserResponse>(`/api/users/${userId}`, { method: "GET", token });
+  },
+  updateMe(token: string, payload: UserUpdateRequest) {
+    return request<UserResponse>("/api/users/me", {
+      method: "PATCH",
+      token,
+      body: payload,
+    });
   },
 };
 

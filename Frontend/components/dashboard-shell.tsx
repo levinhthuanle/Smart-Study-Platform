@@ -440,7 +440,7 @@ export function DashboardShell() {
               {selectedWorkspace?.name || "Select a workspace"}
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
-              {currentUser ? `Signed in as ${currentUser.email}` : "No user loaded."}
+              {currentUser ? `Signed in as ${currentUser.username || currentUser.email}` : "No user loaded."}
             </p>
           </div>
 
@@ -501,7 +501,7 @@ export function DashboardShell() {
                 >
                   {members.map((m) => (
                     <option key={m.workspace_member_id} value={m.user_id}>
-                      {usersById[m.user_id]?.email ?? `User #${m.user_id}`}
+                      {usersById[m.user_id]?.username ?? usersById[m.user_id]?.email ?? `User #${m.user_id}`}
                     </option>
                   ))}
                 </select>
@@ -534,7 +534,7 @@ export function DashboardShell() {
                             <div>
                               <h4 className="font-medium text-ink">{task.title}</h4>
                               <p className="mt-2 text-sm leading-6 text-slate-500">
-                                Assigned to {usersById[task.assigned_to]?.email ?? `#${task.assigned_to}`}
+                                Assigned to {usersById[task.assigned_to]?.username ?? usersById[task.assigned_to]?.email ?? `#${task.assigned_to}`}
                               </p>
                             </div>
                             <Circle className="size-4 text-slate-300" />
@@ -608,9 +608,9 @@ export function DashboardShell() {
                       <div className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-3">
                           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 font-medium text-slate-700">
-                            {usersById[message.sender_id]?.email?.charAt(0).toUpperCase() ?? "U"}
+                            {(usersById[message.sender_id]?.username || usersById[message.sender_id]?.email || "U").charAt(0).toUpperCase()}
                           </div>
-                          <p className="font-medium text-ink">{usersById[message.sender_id]?.email ?? `User #${message.sender_id}`}</p>
+                          <p className="font-medium text-ink">{usersById[message.sender_id]?.username ?? usersById[message.sender_id]?.email ?? `User #${message.sender_id}`}</p>
                         </div>
                         <p className="font-mono text-xs text-slate-500">{formatDate(message.created_at)}</p>
                       </div>

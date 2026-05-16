@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { backendApi, getWsBaseUrl, type ChannelResponse, type MessageResponse } from "@/lib/api";
+import { backendApi, getWsBaseUrl, type ChannelResponse, type MessageResponse, type UserResponse } from "@/lib/api";
 import { Loader2, MessageCircle, Plus } from "lucide-react";
 
 export default function ChatPage() {
@@ -18,7 +18,7 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isCreatingChannel, setIsCreatingChannel] = useState(false);
-  const [usersById, setUsersById] = useState<Record<number, { user_id: number; email: string }>>({});
+  const [usersById, setUsersById] = useState<Record<number, UserResponse>>({});
 
   const wsRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -50,7 +50,7 @@ export default function ChatPage() {
         const userPromises: Promise<any>[] = [];
         userIds.forEach((id) => userPromises.push(backendApi.getUser(token, id)));
         const userResults = await Promise.allSettled(userPromises);
-        const map: Record<number, { user_id: number; email: string }> = {};
+        const map: Record<number, UserResponse> = {};
         userResults.forEach((res) => {
           if (res.status === "fulfilled") {
             map[res.value.user_id] = res.value;
@@ -205,9 +205,9 @@ export default function ChatPage() {
               {filtered.map((m) => (
                 <div key={m.message_id} className="rounded-2xl border p-3 bg-white">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center text-sm font-medium">{usersById[m.sender_id]?.email?.charAt(0).toUpperCase() ?? "U"}</div>
+                    <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center text-sm font-medium">{(usersById[m.sender_id]?.username || usersById[m.sender_id]?.email || "U").charAt(0).toUpperCase()}</div>
                     <div className="flex-1">
-                      <div className="font-medium">{usersById[m.sender_id]?.email ?? `User #${m.sender_id}`}</div>
+                      <div className="font-medium">{usersById[m.sender_id]?.username ?? usersById[m.sender_id]?.email ?? `User #${m.sender_id}`}</div>
                       <div className="text-xs text-slate-500">{new Date(m.created_at).toLocaleString()}</div>
                     </div>
                   </div>
